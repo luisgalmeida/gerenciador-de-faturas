@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciador de Faturas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#F0F4F8;--surf:#FFFFFF;--card:#F8FAFC;
+  --bord:#E2E8F0;--bord2:#CBD5E1;
+  --acc:#2563EB;--acc-dim:rgba(37,99,235,.08);--acc-lt:#DBEAFE;
+  --amb:#D97706;--grn:#059669;--red:#DC2626;
+  --txt:#1E293B;--txt2:#475569;--mut:#94A3B8;
+  --thead-bg:#EFF6FF;--thead-bord:#BFDBFE;
+  --row-hover:#F8FAFF;--row-sel:#EFF6FF;
+  --ed-focus:#FFFFFF;--r:8px;
+}
+[data-theme="dark"]{
+  --bg:#0B1220;--surf:#141E30;--card:#1A2840;
+  --bord:#243650;--bord2:#2E4468;
+  --acc:#60A5FA;--acc-dim:rgba(96,165,250,.12);--acc-lt:rgba(96,165,250,.2);
+  --amb:#FBBF24;--grn:#34D399;--red:#F87171;
+  --txt:#F1F5F9;--txt2:#CBD5E1;--mut:#64748B;
+  --thead-bg:#1A2E50;--thead-bord:#2D4A7A;
+  --row-hover:rgba(96,165,250,.05);--row-sel:rgba(96,165,250,.1);
+  --ed-focus:#1E3050;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;font-size:13px;transition:background .2s,color .2s}
+header{background:var(--surf);border-bottom:1px solid var(--bord);padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:200;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.logo{font-weight:700;font-size:15px;color:var(--acc);letter-spacing:-.4px;display:flex;align-items:center;gap:8px}
+.logo-icon{width:28px;height:28px;background:var(--acc);border-radius:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+.logo-sub{color:var(--mut);font-weight:400;font-size:12px}
+.theme-btn{margin-left:auto;background:var(--card);border:1px solid var(--bord);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--txt2);display:flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit;font-weight:500}
+.theme-btn:hover{border-color:var(--acc);color:var(--acc)}
+main{flex:1;padding:20px 24px;display:flex;flex-direction:column;gap:16px;max-width:1400px;width:100%;margin:0 auto}
+.panel{background:var(--surf);border:1px solid var(--bord);border-radius:var(--r);padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ptitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--mut);margin-bottom:16px}
+.import-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.import-grid{grid-template-columns:1fr}}
+.imp-card{border:1px solid var(--bord);border-radius:var(--r);overflow:hidden}
+.imp-card-header{background:var(--card);border-bottom:1px solid var(--bord);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.imp-card-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ic-pdf{background:#FEE2E2;color:#DC2626}.ic-json{background:#D1FAE5;color:#059669}
+.imp-card-title{font-size:12px;font-weight:600;color:var(--txt)}.imp-card-sub{font-size:11px;color:var(--mut)}
+.imp-card-body{padding:14px}
+.drop-zone{border:2px dashed var(--bord2);border-radius:6px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s;position:relative;background:var(--card)}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--acc);background:var(--acc-dim)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-title{font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:3px}.drop-sub{font-size:11px;color:var(--mut)}.drop-ico{font-size:28px;margin-bottom:8px;opacity:.6}
+.status-list{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.status-item{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--bord);border-radius:5px;padding:6px 10px;font-size:11px;color:var(--txt2)}
+.si-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.si-ok{color:var(--grn);font-weight:600}.si-err{color:var(--red);font-weight:600}.si-spin{color:var(--acc)}
+.prog-wrap{display:none;margin-top:10px}.prog-bar{height:3px;background:var(--bord);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--acc);border-radius:2px;transition:width .3s;width:0%}
+.prog-msg{font-size:10px;color:var(--mut);margin-top:5px;text-align:center}
+.json-status{display:none;margin-top:10px;padding:8px 10px;border-radius:6px;font-size:11px;align-items:center;gap:6px}
+.json-ok{background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0}.json-err{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA}
+[data-theme="dark"] .json-ok{background:rgba(52,211,153,.15);color:#6EE7B7;border-color:rgba(52,211,153,.3)}
+[data-theme="dark"] .json-err{background:rgba(248,113,113,.15);color:#FCA5A5;border-color:rgba(248,113,113,.3)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-pri{background:var(--acc);color:#fff}.btn-pri:hover{filter:brightness(1.1)}
+.btn-ghost{background:transparent;color:var(--txt2);border:1px solid var(--bord)}.btn-ghost:hover{border-color:var(--bord2);background:var(--card)}
+.btn-grn{background:var(--grn);color:#fff}.btn-grn:hover{filter:brightness(1.1)}
+.btn-red{background:transparent;color:var(--red);border:1px solid rgba(220,38,38,.2)}.btn-red:hover{background:rgba(220,38,38,.08)}
+.btn-pdf{background:#7C3AED;color:#fff}.btn-pdf:hover{filter:brightness(1.1)}
+.btn-sm{padding:3px 8px;font-size:11px}
+.actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+label{font-size:11px;font-weight:500;color:var(--txt2);display:block;margin-bottom:4px}
+select{background:var(--surf);border:1px solid var(--bord);border-radius:5px;color:var(--txt);font-family:inherit;font-size:12px;padding:6px 9px;outline:none;width:100%;transition:border-color .15s}
+select:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-dim)}
+#tblSection{display:none}
+.tbl-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.tbl-title{font-size:14px;font-weight:700;color:var(--txt)}
+.badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--acc-dim);color:var(--acc);border:1px solid rgba(37,99,235,.2)}
+[data-theme="dark"] .badge{border-color:rgba(96,165,250,.3)}
+.total-area{margin-left:auto;display:flex;align-items:center;gap:8px}
+.total-lbl{font-size:11px;color:var(--mut)}.total-val{font-size:16px;font-weight:700;color:var(--amb)}
+.bulk-bar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bord);border-radius:6px;padding:7px 12px;margin-bottom:8px;flex-wrap:wrap}
+.bulk-bar label{margin:0;color:var(--txt2)}.bulk-bar select{width:auto;padding:3px 8px;font-size:11px}
+.tbl-wrap{border:1px solid var(--bord);border-radius:var(--r);overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+table{width:100%;border-collapse:collapse;background:var(--surf)}
+thead{background:var(--thead-bg)}
+th{padding:9px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--acc);white-space:nowrap;border-bottom:1px solid var(--thead-bord)}
+th:first-child{width:40px;padding-left:14px}th:last-child{width:50px}
+tbody tr{border-top:1px solid var(--bord);transition:background .1s}
+tbody tr:hover{background:var(--row-hover)}tbody tr.sel-row{background:var(--row-sel)}
+td{padding:6px 10px;vertical-align:middle}td:first-child{padding-left:14px}
+.ed{background:transparent;border:1px solid transparent;border-radius:4px;color:var(--txt);font-family:inherit;font-size:12px;padding:3px 5px;width:100%;outline:none;transition:all .12s}
+.ed:focus{border-color:var(--acc);background:var(--ed-focus);box-shadow:0 0 0 2px var(--acc-dim)}
+.ed-date{width:90px}.ed-val{text-align:right;color:var(--amb);font-weight:600}.ed-neg{color:var(--red)!important}.ed-parc{text-align:center;width:60px}
+.cat-sel{background:transparent;border:none;border-left:3px solid transparent;border-radius:4px;color:var(--txt);font-family:inherit;font-size:12px;padding:3px 5px;width:100%;outline:none;cursor:pointer;transition:background .12s}
+.cat-sel:hover,.cat-sel:focus{background:var(--card)}.cat-none{color:var(--mut)!important}
+.add-row-btn{width:100%;padding:9px;text-align:center;background:var(--card);border:none;border-top:1px dashed var(--bord2);color:var(--mut);font-family:inherit;font-size:11px;cursor:pointer;transition:color .15s}
+.add-row-btn:hover{color:var(--acc)}
+footer{background:var(--surf);border-top:1px solid var(--bord);padding:10px 24px;display:flex;align-items:center;gap:10px;position:sticky;bottom:0;z-index:200;box-shadow:0 -1px 3px rgba(0,0,0,.04)}
+.foot-info{font-size:11px;color:var(--mut)}.foot-info strong{color:var(--txt)}
+.foot-right{margin-left:auto;display:flex;gap:8px}
+.toast{position:fixed;bottom:64px;right:20px;background:var(--txt);color:var(--surf);border-radius:var(--r);padding:10px 16px;font-size:12px;display:none;align-items:center;gap:6px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);animation:up .2s ease}
+@keyframes up{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+input[type=checkbox]{width:13px;height:13px;accent-color:var(--acc);cursor:pointer}
+.tag-auto{display:inline-block;background:#D1FAE5;color:#065F46;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;margin-left:4px;vertical-align:middle;letter-spacing:.3px}
+[data-theme="dark"] .tag-auto{background:rgba(52,211,153,.2);color:#6EE7B7}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">◈</div>
+    Gerenciador de Faturas
+    <span class="logo-sub">Itaú • Sicoob</span>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 Dark</button>
+</header>
+
+<main>
+  <div class="panel" id="importPanel">
+    <div class="ptitle">Importar</div>
+    <div class="import-grid">
+      <div class="imp-card">
+        <div class="imp-card-header">
+          <div class="imp-card-icon ic-pdf">📄</div>
+          <div><div class="imp-card-title">Fatura PDF</div><div class="imp-card-sub">Itaú e Sicoob · múltiplos arquivos</div></div>
+        </div>
+        <div class="imp-card-body">
+          <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept=".pdf" multiple onchange="onFileSelect(this.files)">
+            <div class="drop-ico">📂</div>
+            <div class="drop-title">Arraste o PDF ou clique para selecionar</div>
+            <div class="drop-sub">Aceita múltiplos arquivos · somente .pdf</div>
+          </div>
+          <div class="prog-wrap" id="progressWrap">
+            <div class="prog-bar"><div class="prog-fill" id="progressFill"></div></div>
+            <div class="prog-msg" id="progressMsg"></div>
+          </div>
+          <div class="status-list" id="fileList"></div>
+        </div>
+      </div>
+      <div class="imp-card">
+        <div class="imp-card-header">
+          <div class="imp-card-icon ic-json">⚙️</div>
+          <div><div class="imp-card-title">Regras de Categorização (JSON)</div><div class="imp-card-sub">Plano de contas + palavras-chave</div></div>
+        </div>
+        <div class="imp-card-body">
+          <div class="drop-zone" id="dropJson">
+            <input type="file" id="jsonInput" accept=".json" onchange="onJsonSelect(this.files)">
+            <div class="drop-ico">📋</div>
+            <div class="drop-title">Arraste o JSON ou clique para selecionar</div>
+            <div class="drop-sub">Carregue seu arquivo de regras</div>
+          </div>
+          <div class="json-status" id="jsonStatus"></div>
+          <div class="actions" style="margin-top:10px">
+            <button class="btn btn-ghost btn-sm" onclick="exportarJSON()">⬇ Exportar JSON atual</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px;padding-top:14px;border-top:1px solid var(--bord)">
+      <button class="btn btn-ghost btn-sm" onclick="limparTudo()">✕ Limpar tudo</button>
+    </div>
+  </div>
+
+  <div id="tblSection">
+    <div class="tbl-header">
+      <span class="tbl-title">Lançamentos</span>
+      <span class="badge" id="countBadge">0</span>
+      <div class="total-area">
+        <span class="total-lbl">Total</span>
+        <span class="total-val" id="totalDisp">R$ 0,00</span>
+      </div>
+    </div>
+    <div class="bulk-bar">
+      <input type="checkbox" id="chkAll" onchange="toggleAll(this)">
+      <span style="font-size:11px;color:var(--mut)" id="selInfo">Selecionar todos</span>
+      <span style="flex:1"></span>
+      <label>Categoria em lote:</label>
+      <select id="bulkCat" onchange="aplicarLote(this)"><option value="">— selecionar —</option></select>
+      <button class="btn btn-red btn-sm" onclick="removerSelecionados()">Remover selecionados</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Data</th>
+            <th style="min-width:200px">Estabelecimento</th>
+            <th style="text-align:right;width:115px">Valor (R$)</th>
+            <th style="text-align:center;width:70px">Parcela</th>
+            <th style="min-width:170px">Cartão</th>
+            <th style="width:90px">Banco</th>
+            <th style="min-width:210px">Categoria</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <button class="add-row-btn" onclick="addLinha()">+ Adicionar linha manualmente</button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span class="foot-info" id="footInfo">Carregue um PDF para começar.</span>
+  <div class="foot-right">
+    <button class="btn btn-ghost btn-sm" onclick="toggleImport()" id="btnToggle" style="display:none">▲ Ocultar importação</button>
+    <button class="btn btn-pdf" onclick="exportarPDF()" id="btnPDF" style="display:none">⬇ Exportar PDF</button>
+    <button class="btn btn-grn" onclick="exportarXLSX()" id="btnExp" style="display:none">⬇ Exportar XLSX</button>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── CONSTANTES DE ANO ─────────────────────────────────────────────────────
+const CUTOFF_MES   = 8;
+const ANO_ANTERIOR = 2025;
+const ANO_ATUAL    = 2026;
+
+// ── TEMA ──────────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('themeBtn').textContent = t==='dark'?'☀️ Light':'🌙 Dark';
+  localStorage.setItem('faturaflow_theme', t);
+}
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');}
+(function(){applyTheme(localStorage.getItem('faturaflow_theme')||'light');})();
+
+// ── ESTADO ────────────────────────────────────────────────────────────────
+let rows=[], _uid=0;
+const uid=()=>++_uid;
+
+let plano={
+  categorias:[
+    "Compras de Mercadorias Adquiridas para Revenda",
+    "Compras de Peças p/ Manutenção de Drones, Baterias, Carregadores",
+    "Compras de Insumos Destinados à Prestação de Serviços"
+  ],
+  regras:[]
+};
+
+const CAT_CORES=['#2563EB','#7C3AED','#DB2777','#059669','#D97706','#DC2626','#0891B2','#65A30D','#9333EA','#EA580C','#0284C7','#16A34A'];
+function corCat(c){const i=plano.categorias.indexOf(c);return i>=0?CAT_CORES[i%CAT_CORES.length]:'transparent';}
+function inicializar(){popularBulk();}
+function popularBulk(){
+  const s=document.getElementById('bulkCat');
+  s.innerHTML='<option value="">— selecionar —</option>';
+  plano.categorias.forEach(c=>{const o=document.createElement('option');o.value=o.textContent=c;s.appendChild(o);});
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────────────────────
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');onFileSelect(e.dataTransfer.files);});
+function onFileSelect(files){
+  const pdfs=Array.from(files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf'));
+  if(!pdfs.length){toast('⚠️ Selecione arquivos PDF.');return;}
+  processarPDFs(pdfs);
+}
+
+const dj=document.getElementById('dropJson');
+dj.addEventListener('dragover',e=>{e.preventDefault();dj.classList.add('drag');});
+dj.addEventListener('dragleave',()=>dj.classList.remove('drag'));
+dj.addEventListener('drop',e=>{e.preventDefault();dj.classList.remove('drag');onJsonSelect(e.dataTransfer.files);});
+function onJsonSelect(files){
+  const f=files[0];
+  if(!f||!f.name.endsWith('.json')){toast('⚠️ Selecione um arquivo .json');return;}
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const d=JSON.parse(e.target.result);
+      if(!d.categorias||!Array.isArray(d.categorias))throw new Error('Campo "categorias" ausente.');
+      plano={categorias:d.categorias,regras:d.regras||[]};
+      popularBulk();
+      if(rows.length){aplicarRegras();render();}
+      showJsonStatus(true,`✓ ${plano.categorias.length} categorias · ${plano.regras.length} regras`);
+      toast('✓ JSON de categorias carregado');
+    }catch(e){showJsonStatus(false,'✕ '+e.message);toast('⚠️ Erro ao ler JSON: '+e.message);}
+  };
+  r.readAsText(f);
+  document.getElementById('jsonInput').value='';
+}
+function showJsonStatus(ok,msg){
+  const el=document.getElementById('jsonStatus');
+  el.className='json-status '+(ok?'json-ok':'json-err');
+  el.textContent=msg;el.style.display='flex';
+}
+function exportarJSON(){
+  const b=new Blob([JSON.stringify(plano,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='categorias-sicoob.json';a.click();toast('✓ JSON exportado');
+}
+
+// ── REGRAS ────────────────────────────────────────────────────────────────
+function aplicarRegras(){
+  let n=0;
+  rows.forEach(r=>{
+    if(r.cat)return;
+    const eu=r.estab.toUpperCase();
+    for(const rg of plano.regras){
+      if(eu.includes(rg.keyword.toUpperCase())){r.cat=rg.categoria;r.auto=true;n++;break;}
+    }
+  });
+  return n;
+}
+
+// ── DETECTAR BANCO ────────────────────────────────────────────────────────
+function detectBank(words){
+  const t=words.map(w=>w.text).join(' ').toUpperCase();
+  if(t.includes('SICOOB'))                           return 'Sicoob';
+  if(t.includes('ITAU')||t.includes('ITAÚ'))         return 'Itaú';
+  if(t.includes('BRADESCO'))                         return 'Bradesco';
+  if(t.includes('SANTANDER'))                        return 'Santander';
+  if(t.includes('NUBANK')||t.includes('NU PAGAMENTOS'))return 'Nubank';
+  if(t.includes('INTER'))                            return 'Banco Inter';
+  if(t.includes('CAIXA ECONOMICA'))                  return 'Caixa';
+  if(t.includes('BANCO DO BRASIL'))                  return 'Banco do Brasil';
+  return '';
+}
+
+// ── EXTRAIR PALAVRAS ──────────────────────────────────────────────────────
+async function extractWords(file){
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const all=[];
+  let yOff=0;
+  for(let p=1;p<=pdf.numPages;p++){
+    const page=await pdf.getPage(p);
+    const content=await page.getTextContent();
+    const vp=page.getViewport({scale:1});
+    const H=vp.height, W=vp.width;
+    for(const item of content.items){
+      if(!item.str.trim())continue;
+      all.push({y:(H-item.transform[5])+yOff,x:item.transform[4],text:item.str.trim(),pageNum:p,pageWidth:W});
+    }
+    yOff+=H+50;
+  }
+  return all;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PARSER SICOOB
+// ══════════════════════════════════════════════════════════════════════════
+function buildSections(words){
+  const byY={};
+  words.forEach(w=>{const yk=Math.round(w.y/2)*2;if(!byY[yk])byY[yk]=[];byY[yk].push(w);});
+  const sections=[];
+  const sortedYs=Object.keys(byY).map(Number).sort((a,b)=>a-b);
+  for(let i=0;i<sortedYs.length;i++){
+    const yk=sortedYs[i];
+    const lt=byY[yk].sort((a,b)=>a.x-b.x).map(w=>w.text).join(' ').trim();
+    if(/^GASTOS DE /i.test(lt)){
+      let label=lt.replace(/^GASTOS DE /i,'').trim();
+      if(i+1<sortedYs.length){const nyk=sortedYs[i+1];if(nyk-yk<25){const nt=byY[nyk].sort((a,b)=>a.x-b.x).map(w=>w.text).join(' ').trim();if(nt.startsWith('(')||/^FE \(/i.test(nt)){label=(label+' '+nt).trim();i++;}}}
+      sections.push({y:yk,label});
+    }
+  }
+  return sections;
+}
+function getSection(dy,sections){let f='';for(const s of sections){if(s.y<=dy+5)f=s.label;else break;}return f;}
+
+const DATE_RE=/^\d{2}\/\d{2}$/;
+const VAL_RE=/^-?\d{1,3}(?:\.\d{3})*,\d{2}$/;
+const XRATE_RE=/R\$\s*-?[\d.,]+\s+U\$\s*-?[\d.,]+\s+V\.DOL/i;
+const PARC_RE=/\b(\d{2}\/\d{2})\b/;
+const SKIP_SC=[
+  /^PAGAMENTO DEBITO EM CONTA/i,/^-?\s*SALDO ANTERIOR/i,/^TOTAL\b/i,/^GASTOS DE /i,
+  /^\(\d{3,4}\)$/,/^FE \(/,/^DEMONSTRATIVO/i,/^Total da Fatura/i,/^Pagamento M/i,
+  /^LIMITES/i,/^Limite\b/i,/^ENCARGOS FINANCEIROS/i,/^Rotativo/i,/^Saque no per/i,
+  /^RESUMO$/i,/^Cr[eé]dito Internacional/i,/^D[eé]bitos/i,/^Encargos\s+\d/i,
+  /^Pagamento\s+\d/i,/^Saldo /i,/^PERFIL DE CONSUMO/i,/^Tipo Estabelecimento/i,
+  /^O pagamento total/i,/^CANAIS/i,/^Central de Atendimento/i,
+  /^Regi[oõ]es Metropolitanas/i,/^Demais regi/i,/^Exterior:/i,/^Ouvidoria/i,
+  /^Deficiente auditivo/i,/^SAC:/i,/^Site:/i,/^SICOOB$/i,/^SISTEMA DE/i,
+  /^PLATAFORMA DE/i,/^Cliente:/i,/^Conta Cart/i,/^Fatura de /i,
+  /^MOVIMENTOS$/i,/^EXTRATO DE CART/i,/^24 horas/i,/^\/\d{4} na c\/c/i,
+];
+const skipSc=t=>SKIP_SC.some(p=>p.test(t));
+
+function parseSicoob(words){
+  const sections=buildSections(words);
+  const leftDates=[],rightVals=[],midWords=[];
+  words.forEach((w,i)=>{
+    if(w.x<160&&DATE_RE.test(w.text))leftDates.push({...w,wid:i});
+    else if(w.x>430&&VAL_RE.test(w.text))rightVals.push({...w,wid:i});
+    else midWords.push({...w,wid:i});
+  });
+  const usedWids=new Set(),txs=[];
+  for(const d of leftDates){
+    const dy=d.y;
+    const sameY=midWords.filter(w=>Math.abs(w.y-dy)<4).sort((a,b)=>a.x-b.x).map(w=>w.text).join(' ');
+    if(skipSc(sameY.trim()))continue;
+    const nearby=rightVals.filter(v=>Math.abs(v.y-dy)<30&&!usedWids.has(v.wid))
+                          .sort((a,b)=>Math.abs(a.y-dy)-Math.abs(b.y-dy));
+    if(!nearby.length)continue;
+    const best=nearby[0];usedWids.add(best.wid);
+    const vy=best.y;
+    const rel=midWords.filter(w=>w.y>=Math.min(dy,vy)-10&&w.y<=Math.max(dy,vy)+10);
+    const byY={};
+    rel.forEach(w=>{const yk=Math.round(w.y);if(!byY[yk])byY[yk]=[];byY[yk].push(w);});
+    const midParts=[];
+    Object.keys(byY).map(Number).sort((a,b)=>a-b).forEach(yk=>{
+      const lt=byY[yk].sort((a,b)=>a.x-b.x).map(w=>w.text).join(' ');
+      if(!XRATE_RE.test(lt))midParts.push(lt);
+    });
+    const mid=midParts.join(' ').trim();
+    if(skipSc(mid))continue;
+    const pm=PARC_RE.exec(mid);
+    let estab=mid,parcela='';
+    if(pm){estab=mid.slice(0,mid.indexOf(pm[0])).trim();parcela=pm[1];}
+    estab=estab.replace(/\s+/g,' ').trim();
+    if(!estab)continue;
+    const[ddStr,mmStr]=d.text.split('/');
+    const mm=parseInt(mmStr);
+    const ano=mm>=CUTOFF_MES?ANO_ANTERIOR:ANO_ATUAL;
+    const valor=parseFloat(best.text.replace(/\./g,'').replace(',','.'));
+    txs.push({id:uid(),data:`${ddStr}/${mmStr}/${ano}`,estab,valor,parcela,
+              cartao:getSection(dy,sections),banco:'Sicoob',cat:'',auto:false,sel:false});
+  }
+  return txs;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// PARSER ITAÚ
+// ══════════════════════════════════════════════════════════════════════════
+function detectItauFmt(words){
+  const t=words.map(w=>w.text).join(' ');
+  return /Total de lançamentos nacionais/i.test(t)?'fmt2':'fmt1';
+}
+
+function parseItau(words){
+  return detectItauFmt(words)==='fmt2'?parseItauFmt2(words):parseItauFmt1(words);
+}
+
+// ── ITAÚ FORMATO 1: 3 zonas por página ───────────────────────────────────
+// Zona A (x<298): data+estab coluna esquerda, categorias
+// Zona B (298≤x<360): valor para entrada da coluna esquerda
+// Zona C (x≥360): transações completas coluna direita, categorias
+function parseItauFmt1(words){
+  const ZA_MAX=298,ZB_MAX=360;
+  const CARD_RE=/JOAO\s+R\s+DE\s+SOUZA\s+JR\s+\(final\s+(\d+)\)/i;
+  const END_CARD=/Lançamentos no cartão \(final \d+\)/i;
+  const END_ALL=/Total dos lançamentos atuais/i;
+  const DATE_RE2=/^\d{2}\/\d{2}$/;
+  const PARC_END=/^(.+?)(\d{2}\/\d{2})\s*$/;
+  const VAL_END=/(-?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s*$/;
+  const SKIP_F1=/^(Limite|DATA\s+ESTAB|VALOR\s*EM|EM\s+R\$|Continua|Produtos|Encargos|Compras parc|Limites|Fique|Novo teto|Simul|Demais|Para contratar|Importante|O Parcel|A simul|Lançamentos: compras|3003|0800|PC -)/i;
+
+  function parseBR(s){
+    s=s.trim();
+    const neg=s.startsWith('-');
+    const clean=s.replace(/\s/g,'').replace(/\./g,'').replace(',','.');
+    const v=parseFloat(clean);
+    return isNaN(v)?null:v;
+  }
+
+  function buildLines(zoneWords){
+    const byY={};
+    zoneWords.forEach(w=>{const yk=Math.round(w.y/2)*2;if(!byY[yk])byY[yk]=[];byY[yk].push(w);});
+    return Object.keys(byY).map(Number).sort((a,b)=>a-b)
+      .map(yk=>({yk,text:byY[yk].sort((a,b)=>a.x-b.x).map(w=>w.text).join(' ').trim()}))
+      .filter(l=>l.text);
+  }
+
+  // Agrupar por página
+  const pages={};
+  words.forEach(w=>{const p=w.pageNum||1;if(!pages[p])pages[p]=[];pages[p].push(w);});
+
+  let currentCard='',inTx=false;
+  let pendingL=null,pendingR=null;
+  const txs=[];
+  let stop=false;
+
+  function finalize(tx,card){
+    if(!tx||!tx.estab.trim())return;
+    const mm=parseInt(tx.mm);
+    const ano=mm>=CUTOFF_MES?ANO_ANTERIOR:ANO_ATUAL;
+    txs.push({id:uid(),data:`${tx.dd}/${tx.mm}/${ano}`,
+              estab:tx.estab.replace(/\s+/g,' ').trim(),
+              valor:tx.valor,parcela:tx.parcela,
+              cartao:card,banco:'Itaú',cat:'',auto:false,sel:false});
+  }
+
+  for(const pn of Object.keys(pages).map(Number).sort((a,b)=>a-b)){
+    if(stop)break;
+    const pw=pages[pn];
+    const za=buildLines(pw.filter(w=>w.x<ZA_MAX));
+    const zb=buildLines(pw.filter(w=>w.x>=ZA_MAX&&w.x<ZB_MAX));
+    const zc=buildLines(pw.filter(w=>w.x>=ZB_MAX));
+
+    // Lookup Zona B: yk→valor
+    const bvals={};
+    for(const {yk,text} of zb){
+      const v=parseBR(text);
+      if(v!==null)bvals[yk]=v;
+    }
+
+    // Processar Zona A
+    for(const {yk,text} of za){
+      if(SKIP_F1.test(text))continue;
+      if(END_ALL.test(text)){finalize(pendingL,currentCard);pendingL=null;finalize(pendingR,currentCard);pendingR=null;stop=true;break;}
+      const cm=CARD_RE.exec(text);
+      if(cm){finalize(pendingL,currentCard);pendingL=null;currentCard=`JOAO R DE SOUZA JR (final ${cm[1]})`;inTx=true;continue;}
+      if(END_CARD.test(text)){finalize(pendingL,currentCard);pendingL=null;continue;}
+      if(!inTx)continue;
+      const fw=text.split(' ')[0]||'';
+      const clean=fw.replace(/^[^0-9A-Za-zÀ-ÿ]*/,'');
+      if(DATE_RE2.test(clean)){
+        finalize(pendingL,currentCard);pendingL=null;
+        const[dd,mm]=clean.split('/');
+        const rest=text.slice(text.indexOf(clean)+clean.length).trim();
+        const pm=PARC_END.exec(rest);
+        let estab=rest,parc='';
+        if(pm){estab=pm[1].trim();parc=pm[2];}
+        const valor=bvals[yk]??0;
+        pendingL={dd,mm,estab,parcela:parc,valor};
+      }else if(pendingL){
+        pendingL.estab+=' '+text;
+        finalize(pendingL,currentCard);pendingL=null;
+      }
+    }
+    finalize(pendingL,currentCard);pendingL=null;
+    if(stop)break;
+
+    // Processar Zona C
+    for(const {yk,text} of zc){
+      // limpar ruído "VALOR EM R$" / "EM R$" que vaza do header central
+      const txt=text.replace(/^(VALOR\s+)?EM\s+R\$\s*/i,'').trim();
+      if(!txt||SKIP_F1.test(txt))continue;
+      if(END_ALL.test(txt)){finalize(pendingR,currentCard);pendingR=null;stop=true;break;}
+      const cm=CARD_RE.exec(txt);
+      if(cm){finalize(pendingR,currentCard);pendingR=null;currentCard=`JOAO R DE SOUZA JR (final ${cm[1]})`;inTx=true;continue;}
+      if(END_CARD.test(txt)){finalize(pendingR,currentCard);pendingR=null;continue;}
+      if(!inTx)continue;
+      const clean=txt.replace(/^[^0-9A-Za-zÀ-ÿ]*/,'').trim();
+      const fw=clean.split(' ')[0]||'';
+      if(DATE_RE2.test(fw)){
+        finalize(pendingR,currentCard);pendingR=null;
+        const[dd,mm]=fw.split('/');
+        const rest=clean.slice(fw.length).trim();
+        const vm=VAL_END.exec(rest);
+        if(!vm)continue;
+        const valor=parseBR(vm[1]);
+        if(valor===null)continue;
+        const mid=rest.slice(0,rest.lastIndexOf(vm[1])).trim();
+        const pm=PARC_END.exec(mid);
+        let estab=mid,parc='';
+        if(pm){estab=pm[1].trim();parc=pm[2];}
+        pendingR={dd,mm,estab,parcela:parc,valor};
+      }else if(pendingR){
+        pendingR.estab+=' '+txt;
+        finalize(pendingR,currentCard);pendingR=null;
+      }
+    }
+    finalize(pendingR,currentCard);pendingR=null;
+  }
+  return txs;
+}
+
+// ── ITAÚ FORMATO 2: coluna única linear ──────────────────────────────────
+function parseItauFmt2(words){
+  const CARD_RE2=/JOAO\s+RODRIGUES\s+DE\s+SOUZA\s+JU\w*\s*[-–]?\s*FINAL\s+(\d+)/i;
+  const TX_RE2=/^(\d{2})\/(\d{2})\s+(.+?)\s+(-?R\$[\d.]+,\d{2})\s*$/;
+  const PARC_END2=/^(.+?)(\d{2}\/\d{2})\s*$/;
+  const END_CARD2=/Total de lançamentos nacionais/i;
+  const END_ALL2=/Total da fatura|Total de lançamentos, produtos/i;
+  const SKIP_F2=/^(Lançamentos nacionais|data\s+descri|Produtos|Total de produtos|Encargos|Limite|DATA\s+ESTAB|Continua)/i;
+
+  const byY={};
+  words.forEach(w=>{const yk=Math.round(w.y/2)*2;if(!byY[yk])byY[yk]=[];byY[yk].push(w);});
+  const lines=Object.keys(byY).map(Number).sort((a,b)=>a-b)
+    .map(yk=>byY[yk].sort((a,b)=>a.x-b.x).map(w=>w.text).join(' ').trim())
+    .filter(t=>t);
+
+  let currentCard='',inLanc=false;
+  const txs=[];
+
+  for(const txt of lines){
+    if(inLanc&&END_ALL2.test(txt))break;
+    if(END_CARD2.test(txt))continue;
+    if(/^Lançamentos$/i.test(txt)){inLanc=true;continue;}
+    const cm=CARD_RE2.exec(txt);
+    if(cm){currentCard=`JOAO RODRIGUES DE SOUZA JU - FINAL ${cm[1]}`;inLanc=true;continue;}
+    if(!inLanc||SKIP_F2.test(txt))continue;
+    const m=TX_RE2.exec(txt);
+    if(m){
+      const[,dd,mm,mid,vstr]=m;
+      const valor=parseFloat(vstr.replace('R$','').replace(/\./g,'').replace(',','.'));
+      const pm=PARC_END2.exec(mid);
+      let estab=mid,parc='';
+      if(pm){estab=pm[1].trim();parc=pm[2];}
+      const mmI=parseInt(mm);
+      const ano=mmI>=CUTOFF_MES?ANO_ANTERIOR:ANO_ATUAL;
+      txs.push({id:uid(),data:`${dd}/${mm}/${ano}`,estab:estab.trim(),
+                valor,parcela:parc,cartao:currentCard,banco:'Itaú',cat:'',auto:false,sel:false});
+    }
+  }
+  return txs;
+}
+
+// ── ROUTER PRINCIPAL ──────────────────────────────────────────────────────
+function parsePDFWords(words,banco){
+  if(banco==='Itaú')return parseItau(words);
+  return parseSicoob(words);
+}
+
+// ── PROCESSAR PDFs ────────────────────────────────────────────────────────
+async function processarPDFs(files){
+  const wrap=document.getElementById('progressWrap');
+  const fill=document.getElementById('progressFill');
+  const msg=document.getElementById('progressMsg');
+  const list=document.getElementById('fileList');
+  wrap.style.display='block';list.innerHTML='';
+  let total=0;
+
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    fill.style.width=Math.round((i/files.length)*100)+'%';
+    msg.textContent=`Lendo ${f.name}… (${i+1}/${files.length})`;
+    const item=document.createElement('div');item.className='status-item';
+    item.innerHTML=`<span>📄</span><span class="si-name">${esc(f.name)}</span><span class="si-spin" id="fi${i}">⏳</span>`;
+    list.appendChild(item);
+    try{
+      const words=await extractWords(f);
+      const banco=detectBank(words);
+      const parsed=parsePDFWords(words,banco);
+      rows=[...rows,...parsed];total+=parsed.length;
+      document.getElementById('fi'+i).className='si-ok';
+      document.getElementById('fi'+i).textContent=`✓ ${parsed.length} lançamentos${banco?' · '+banco:''}`;
+    }catch(e){
+      document.getElementById('fi'+i).className='si-err';
+      document.getElementById('fi'+i).textContent='✕ erro';
+      console.error(f.name,e);
+    }
+  }
+  fill.style.width='100%';
+  msg.textContent=`Concluído — ${total} lançamentos`;
+  setTimeout(()=>wrap.style.display='none',2500);
+  const nAuto=aplicarRegras();render();
+  toast(`✓ ${total} lançamentos importados${nAuto?` · ${nAuto} categorizados automaticamente`:''}`);
+  document.getElementById('fileInput').value='';
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render(){
+  const tbody=document.getElementById('tbody');tbody.innerHTML='';
+  const total=rows.reduce((s,r)=>s+r.valor,0);
+  const selCount=rows.filter(r=>r.sel).length;
+  document.getElementById('countBadge').textContent=rows.length;
+  document.getElementById('totalDisp').textContent=brl(total);
+  document.getElementById('selInfo').textContent=selCount>0?`${selCount} selecionado(s)`:'Selecionar todos';
+  document.getElementById('chkAll').checked=rows.length>0&&rows.every(r=>r.sel);
+  document.getElementById('footInfo').innerHTML=`<strong>${rows.length}</strong> lançamentos &nbsp;·&nbsp; Total: <strong>${brl(total)}</strong>`;
+
+  rows.forEach((r,i)=>{
+    const cor=corCat(r.cat);const tr=document.createElement('tr');
+    if(r.sel)tr.classList.add('sel-row');
+    const catOpts=['<option value="">— sem categoria —</option>',
+      ...plano.categorias.map(c=>`<option value="${esc(c)}" ${c===r.cat?'selected':''}>${esc(c)}</option>`)
+    ].join('');
+    tr.innerHTML=`
+      <td><input type="checkbox" ${r.sel?'checked':''} onchange="toggleSel(${i},this)"></td>
+      <td><input class="ed ed-date" value="${esc(r.data)}" onchange="upField(${i},'data',this.value)"></td>
+      <td>
+        <input class="ed" style="min-width:185px" value="${esc(r.estab)}" onchange="upField(${i},'estab',this.value)">
+        ${r.auto?'<span class="tag-auto">AUTO</span>':''}
+      </td>
+      <td><input class="ed ed-val ${r.valor<0?'ed-neg':''}" value="${brlNum(r.valor)}"
+            onchange="upValor(${i},this.value)" onblur="fmtValor(${i},this)"></td>
+      <td><input class="ed ed-parc" value="${esc(r.parcela)}" onchange="upField(${i},'parcela',this.value)"></td>
+      <td><input class="ed" style="min-width:155px;color:var(--txt2)" value="${esc(r.cartao)}" onchange="upField(${i},'cartao',this.value)"></td>
+      <td><input class="ed" style="width:82px;color:var(--txt2)" value="${esc(r.banco)}" onchange="upField(${i},'banco',this.value)"></td>
+      <td>
+        <select class="cat-sel ${!r.cat?'cat-none':''}" style="border-left:3px solid ${cor}"
+                onchange="upCat(${i},this.value,this)">${catOpts}</select>
+      </td>
+      <td><button class="btn btn-red btn-sm" onclick="remRow(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  atualizarUI();
+}
+
+function atualizarUI(){
+  const tem=rows.length>0;
+  document.getElementById('tblSection').style.display=tem?'block':'none';
+  document.getElementById('btnExp').style.display=tem?'inline-flex':'none';
+  document.getElementById('btnPDF').style.display=tem?'inline-flex':'none';
+  document.getElementById('btnToggle').style.display=tem?'inline-flex':'none';
+}
+
+// ── AÇÕES ─────────────────────────────────────────────────────────────────
+function addLinha(){rows.push({id:uid(),data:'',estab:'',valor:0,parcela:'',cartao:'',banco:'',cat:'',auto:false,sel:false});render();setTimeout(()=>{const ins=document.querySelectorAll('.ed-date');if(ins.length)ins[ins.length-1].focus();},50);}
+function remRow(i){rows.splice(i,1);render();}
+function removerSelecionados(){const n=rows.filter(r=>r.sel).length;if(!n){toast('Selecione ao menos um.');return;}rows=rows.filter(r=>!r.sel);render();toast(`✓ ${n} removido(s)`);}
+function limparTudo(){if(rows.length&&!confirm('Limpar todos os lançamentos?'))return;rows=[];document.getElementById('fileList').innerHTML='';document.getElementById('jsonStatus').style.display='none';render();document.getElementById('footInfo').textContent='Carregue um PDF para começar.';}
+function upField(i,f,v){rows[i][f]=v;atualizarTotal();}
+function upValor(i,v){const n=parseBrl(v);if(!isNaN(n)){rows[i].valor=n;atualizarTotal();}}
+function fmtValor(i,el){el.value=brlNum(rows[i].valor);el.className=`ed ed-val ${rows[i].valor<0?'ed-neg':''}`;}
+function upCat(i,v,el){rows[i].cat=v;rows[i].auto=false;el.style.borderLeft=`3px solid ${corCat(v)}`;el.className=`cat-sel ${!v?'cat-none':''}`;}
+function toggleSel(i,el){rows[i].sel=el.checked;el.closest('tr').classList.toggle('sel-row',el.checked);const n=rows.filter(r=>r.sel).length;document.getElementById('selInfo').textContent=n>0?`${n} selecionado(s)`:'Selecionar todos';document.getElementById('chkAll').checked=n===rows.length&&n>0;}
+function toggleAll(el){rows.forEach(r=>r.sel=el.checked);render();}
+function aplicarLote(el){const cat=el.value;el.value='';if(!cat)return;const sels=rows.filter(r=>r.sel);if(!sels.length){toast('Selecione ao menos um.');return;}sels.forEach(r=>{r.cat=cat;r.auto=false;});render();toast(`✓ Categoria aplicada a ${sels.length} lançamento(s)`);}
+function atualizarTotal(){const t=rows.reduce((s,r)=>s+r.valor,0);document.getElementById('totalDisp').textContent=brl(t);document.getElementById('footInfo').innerHTML=`<strong>${rows.length}</strong> lançamentos &nbsp;·&nbsp; Total: <strong>${brl(t)}</strong>`;}
+let pAberto=true;
+function toggleImport(){pAberto=!pAberto;document.getElementById('importPanel').style.display=pAberto?'block':'none';document.getElementById('btnToggle').textContent=pAberto?'▲ Ocultar importação':'▼ Mostrar importação';}
+
+// ── EXPORT XLSX ───────────────────────────────────────────────────────────
+function exportarXLSX(){
+  if(!rows.length){toast('Nada para exportar.');return;}
+  const wb=XLSX.utils.book_new();
+  const dados=[['Data','Estabelecimento','Valor (R$)','Parcela','Cartão','Banco','Categoria']];
+  rows.forEach(r=>dados.push([r.data,r.estab,r.valor,r.parcela,r.cartao,r.banco,r.cat]));
+  dados.push(['','TOTAL',{f:`SUM(C2:C${rows.length+1})`},'','','','']);
+  const ws=XLSX.utils.aoa_to_sheet(dados);
+  ws['!cols']=[{wch:13},{wch:35},{wch:14},{wch:10},{wch:28},{wch:12},{wch:42}];
+  XLSX.utils.book_append_sheet(wb,ws,'Lançamentos');
+  const d=new Date();
+  XLSX.writeFile(wb,`faturas_${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}.xlsx`);
+  toast('✓ Planilha XLSX exportada!');
+}
+
+// ── EXPORT PDF ────────────────────────────────────────────────────────────
+function exportarPDF(){
+  if(!rows.length){toast('Nada para exportar.');return;}
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  doc.setFontSize(16);doc.setTextColor(37,99,235);
+  doc.text('Gerenciador de Faturas',14,14);
+  doc.setFontSize(9);doc.setTextColor(100,116,139);
+  doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}`,14,20);
+  const total=rows.reduce((s,r)=>s+r.valor,0);
+  doc.autoTable({
+    startY:25,
+    head:[['Data','Estabelecimento','Valor (R$)','Parcela','Cartão','Banco','Categoria']],
+    body:[
+      ...rows.map(r=>[r.data,r.estab,r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2}),r.parcela,r.cartao,r.banco,r.cat]),
+      ['','TOTAL',total.toLocaleString('pt-BR',{minimumFractionDigits:2}),'','','','']
+    ],
+    styles:{fontSize:7.5,cellPadding:2.5,overflow:'linebreak'},
+    headStyles:{fillColor:[37,99,235],textColor:255,fontStyle:'bold',fontSize:8},
+    alternateRowStyles:{fillColor:[248,250,252]},
+    columnStyles:{0:{cellWidth:20},1:{cellWidth:68},2:{cellWidth:24,halign:'right'},3:{cellWidth:16,halign:'center'},4:{cellWidth:46},5:{cellWidth:18},6:{cellWidth:68}},
+    didParseCell(data){if(data.section==='body'&&data.row.index===rows.length){data.cell.styles.fontStyle='bold';data.cell.styles.fillColor=[239,246,255];}},
+    margin:{left:14,right:14},
+  });
+  const d=new Date();
+  doc.save(`faturas_${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}.pdf`);
+  toast('✓ PDF exportado!');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+const brl=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const brlNum=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const parseBrl=s=>parseFloat(s.replace(/R\$\s*/g,'').replace(/\./g,'').replace(',','.').trim());
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const p2=n=>String(n).padStart(2,'0');
+let _t;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.style.display='flex';clearTimeout(_t);_t=setTimeout(()=>el.style.display='none',3500);}
+
+inicializar();
+</script>
+</body>
+</html>
