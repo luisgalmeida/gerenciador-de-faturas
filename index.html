@@ -453,7 +453,7 @@ function parseItau(words){
 // Zona C (x≥360): transações completas coluna direita, categorias
 function parseItauFmt1(words){
   const ZA_MAX=298,ZB_MAX=360;
-  const CARD_RE=/JOAO\s+R\s+DE\s+SOUZA\s+JR\s+\(final\s+(\d+)\)/i;
+  const CARD_RE=/^([A-Z][A-Z0-9 .]+)\s*\(final\s+(\d+)\)/;
   const END_CARD=/Lançamentos no cartão \(final \d+\)/i;
   const END_ALL=/Total dos lançamentos atuais/i;
   const DATE_RE2=/^\d{2}\/\d{2}$/;
@@ -515,7 +515,7 @@ function parseItauFmt1(words){
       if(SKIP_F1.test(text))continue;
       if(END_ALL.test(text)){finalize(pendingL,currentCard);pendingL=null;finalize(pendingR,currentCard);pendingR=null;stop=true;break;}
       const cm=CARD_RE.exec(text);
-      if(cm){finalize(pendingL,currentCard);pendingL=null;currentCard=`JOAO R DE SOUZA JR (final ${cm[1]})`;inTx=true;continue;}
+      if(cm){finalize(pendingL,currentCard);pendingL=null;currentCard=`${cm[1].trim()} (final ${cm[2]})`;inTx=true;continue;}
       if(END_CARD.test(text)){finalize(pendingL,currentCard);pendingL=null;continue;}
       if(!inTx)continue;
       const fw=text.split(' ')[0]||'';
@@ -544,7 +544,7 @@ function parseItauFmt1(words){
       if(!txt||SKIP_F1.test(txt))continue;
       if(END_ALL.test(txt)){finalize(pendingR,currentCard);pendingR=null;stop=true;break;}
       const cm=CARD_RE.exec(txt);
-      if(cm){finalize(pendingR,currentCard);pendingR=null;currentCard=`JOAO R DE SOUZA JR (final ${cm[1]})`;inTx=true;continue;}
+      if(cm){finalize(pendingR,currentCard);pendingR=null;currentCard=`${cm[1].trim()} (final ${cm[2]})`;inTx=true;continue;}
       if(END_CARD.test(txt)){finalize(pendingR,currentCard);pendingR=null;continue;}
       if(!inTx)continue;
       const clean=txt.replace(/^[^0-9A-Za-zÀ-ÿ]*/,'').trim();
